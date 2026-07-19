@@ -1,0 +1,7 @@
+**/.env
+**/.idea/
+**/.vscode/
+**/*.log
+**/data/
+**/logs/
+**/compose.override.yaml

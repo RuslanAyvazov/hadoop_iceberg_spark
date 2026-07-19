@@ -1,0 +1,29 @@
+name: Validate configurations
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        directory:
+          - hadoop_iceberg_spark_single_node
+          - hadoop_iceberg_spark_cluster
+
+    defaults:
+      run:
+        working-directory: ${{ matrix.directory }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
+
+      - name: Validate shell scripts
+        run: bash -n scripts/*.sh
