@@ -1,6 +1,7 @@
 # Hadoop, Spark и Iceberg в Docker
 
 [![Проверка конфигураций](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml)
+[![Сборка Docker-образов](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml)
 
 Две готовые сборки для локальной работы с Hadoop HDFS, Spark SQL, Apache
 Iceberg, Parquet и Hive Metastore. Обе запускаются через Docker Compose и
@@ -19,7 +20,7 @@ cd hadoop_iceberg_spark
 
 ```bash
 cd hadoop_iceberg_spark_single_node
-docker compose up -d --build
+docker compose up -d
 docker compose ps
 ```
 
@@ -27,12 +28,41 @@ docker compose ps
 
 ```bash
 cd ../hadoop_iceberg_spark_cluster
-docker compose up -d --build
+docker compose up -d
 docker compose ps
 ```
 
 Не запускайте обе сборки одновременно с настройками по умолчанию: они
 используют одинаковые порты на компьютере.
+
+## Готовые образы и локальная сборка
+
+При обычном запуске Docker сначала получает готовый образ из GitHub Container
+Registry. Если образ уже скачан, он используется повторно:
+
+```bash
+docker compose up -d
+```
+
+Чтобы явно скачать свежий готовый образ и запретить локальную сборку:
+
+```bash
+docker compose pull
+docker compose up -d --no-build
+```
+
+Для самостоятельной сборки из `Dockerfile` используйте:
+
+```bash
+docker compose up -d --build
+```
+
+Опубликованы два образа для `linux/amd64`:
+
+```text
+ghcr.io/ruslanayvazov/hadoop-iceberg-spark-single-node:3.3.6-3.5.4
+ghcr.io/ruslanayvazov/hadoop-iceberg-spark-cluster:3.3.6-3.5.4
+```
 
 ## Подключение DBeaver
 

@@ -1,6 +1,7 @@
 # Hadoop, Spark и Iceberg: одноузловой стенд в Docker
 
 [![Проверка конфигураций](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml)
+[![Сборка Docker-образов](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml)
 
 Готовый локальный стенд для Spark SQL, HDFS, Apache Iceberg, Parquet и Hive
 Metastore. Вся инфраструктура запускается одной командой через Docker Compose,
@@ -13,7 +14,7 @@ Metastore. Вся инфраструктура запускается одной
 - Docker Desktop или Docker Engine;
 - Docker Compose версии 2;
 - не менее 6 ГБ памяти, доступной Docker;
-- около 10 ГБ свободного места на первую сборку;
+- около 10 ГБ свободного места для образа и данных;
 - свободные порты `4040`, `9870` и `10000`.
 
 Склонируйте репозиторий и запустите стенд:
@@ -21,12 +22,13 @@ Metastore. Вся инфраструктура запускается одной
 ```bash
 git clone https://github.com/RuslanAyvazov/hadoop_iceberg_spark.git
 cd hadoop_iceberg_spark/hadoop_iceberg_spark_single_node
-docker compose up -d --build
+docker compose up -d
 docker compose ps
 ```
 
-Первый запуск занимает несколько минут: Docker скачивает Hadoop, Spark и Hive,
-собирает образ, форматирует новый HDFS и создаёт схему Hive Metastore.
+При первом запуске Docker скачивает готовый образ, форматирует новый HDFS и
+создаёт схему Hive Metastore. Если готовый образ недоступен, Compose может
+собрать его локально из `Dockerfile`.
 
 Стенд готов, когда оба сервиса имеют состояние `healthy`:
 
@@ -39,6 +41,27 @@ bigdata    healthy
 
 ```bash
 docker compose logs -f bigdata
+```
+
+## Готовый образ и локальная сборка
+
+Готовый образ для `linux/amd64`:
+
+```text
+ghcr.io/ruslanayvazov/hadoop-iceberg-spark-single-node:3.3.6-3.5.4
+```
+
+Явно скачать его и исключить локальную сборку:
+
+```bash
+docker compose pull
+docker compose up -d --no-build
+```
+
+Собрать образ самостоятельно:
+
+```bash
+docker compose up -d --build
 ```
 
 ## Подключение DBeaver

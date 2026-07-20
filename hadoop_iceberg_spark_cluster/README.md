@@ -1,6 +1,7 @@
 # Кластер Hadoop, Spark и Iceberg в Docker
 
 [![Проверка конфигураций](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml)
+[![Сборка Docker-образов](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml)
 
 Учебный распределённый кластер: три HDFS-узла, три вычислительных узла YARN,
 Spark SQL, Apache Iceberg, Parquet и Hive Metastore. Всё запускается через
@@ -13,7 +14,7 @@ Docker Compose, после чего к Spark SQL можно подключить
 - Docker Desktop или Docker Engine;
 - Docker Compose версии 2;
 - не менее 12 ГБ памяти, доступной Docker, желательно 16 ГБ;
-- около 20 ГБ свободного места на первую сборку и данные;
+- около 20 ГБ свободного места для образа и данных;
 - свободные порты `4040`, `8088`, `9870`, `10000` и `18080`.
 
 Склонируйте репозиторий и запустите кластер:
@@ -21,13 +22,14 @@ Docker Compose, после чего к Spark SQL можно подключить
 ```bash
 git clone https://github.com/RuslanAyvazov/hadoop_iceberg_spark.git
 cd hadoop_iceberg_spark/hadoop_iceberg_spark_cluster
-docker compose up -d --build
+docker compose up -d
 docker compose ps
 ```
 
-Первый запуск занимает несколько минут. Docker скачивает дистрибутивы,
-форматирует новый HDFS, регистрирует три рабочих узла, создаёт схему Hive
-Metastore и отправляет Spark Thrift Server на выполнение через YARN.
+При первом запуске Docker скачивает готовый образ, форматирует новый HDFS,
+регистрирует три рабочих узла, создаёт схему Hive Metastore и отправляет Spark
+Thrift Server на выполнение через YARN. Если готовый образ недоступен, Compose
+может собрать его локально из `Dockerfile`.
 
 Кластер готов, когда все десять сервисов имеют состояние `healthy`:
 
@@ -48,6 +50,27 @@ historyserver         healthy
 
 ```bash
 docker compose logs -f thriftserver
+```
+
+## Готовый образ и локальная сборка
+
+Все Java-сервисы кластера используют один готовый образ для `linux/amd64`:
+
+```text
+ghcr.io/ruslanayvazov/hadoop-iceberg-spark-cluster:3.3.6-3.5.4
+```
+
+Явно скачать его и исключить локальную сборку:
+
+```bash
+docker compose pull
+docker compose up -d --no-build
+```
+
+Собрать образ самостоятельно:
+
+```bash
+docker compose up -d --build
 ```
 
 ## Подключение DBeaver
