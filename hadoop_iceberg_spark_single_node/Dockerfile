@@ -95,9 +95,9 @@ RUN rm -f "${HIVE_HOME}"/lib/guava-*.jar "${HIVE_HOME}"/lib/postgresql-*.jar \
 
 COPY conf/hadoop/ ${HADOOP_HOME}/etc/hadoop/
 COPY conf/spark/ ${SPARK_HOME}/conf/
-COPY conf/hive/hive-site.xml.template /opt/bigdata/templates/hive-site.xml.template
-COPY scripts/entrypoint.sh scripts/healthcheck.sh /opt/bigdata/bin/
-COPY tests/smoke-test.sql /opt/bigdata/tests/smoke-test.sql
+COPY --chown=bigdata:bigdata conf/hive/hive-site.xml.template /opt/bigdata/templates/hive-site.xml.template
+COPY --chown=bigdata:bigdata scripts/entrypoint.sh scripts/healthcheck.sh /opt/bigdata/bin/
+COPY --chown=bigdata:bigdata tests/ /opt/bigdata/tests/
 
 RUN mkdir -p \
       /data/hdfs/namenode \
@@ -114,9 +114,10 @@ RUN mkdir -p \
     && chown -R bigdata:bigdata \
       /data \
       /opt/bigdata \
-      "${HADOOP_HOME}" \
-      "${HIVE_HOME}" \
-      "${SPARK_HOME}" \
+      "${HADOOP_LOG_DIR}" \
+      "${HIVE_HOME}/conf" \
+      "${HIVE_HOME}/logs" \
+      "${SPARK_HOME}/logs" \
       "${HADOOP_PID_DIR}"
 
 USER bigdata
