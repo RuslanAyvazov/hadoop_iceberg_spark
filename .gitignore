@@ -5,3 +5,5 @@
 **/data/
 **/logs/
 **/compose.override.yaml
+**/__pycache__/
+**/*.pyc

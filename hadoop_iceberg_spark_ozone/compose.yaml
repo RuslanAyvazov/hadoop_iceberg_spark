@@ -1,0 +1,190 @@
+name: hadoop-iceberg-spark-ozone
+
+x-ozone-image: &ozone-image
+  image: apache/ozone:${OZONE_VERSION:-2.2.1}-slim
+
+x-spark-image: &spark-image
+  build:
+    context: .
+    args:
+      SPARK_VERSION: "3.5.4"
+      ICEBERG_VERSION: "1.6.1"
+      OZONE_VERSION: "2.2.1"
+      HADOOP_COMPAT_VERSION: "3.4.2"
+  image: ghcr.io/ruslanayvazov/hadoop-iceberg-spark-ozone:2.2.1-3.5.4
+
+x-ozone-config: &ozone-config
+  OZONE-SITE.XML_hdds.datanode.dir: /data/hdds
+  OZONE-SITE.XML_hdds.scm.safemode.min.datanode: "1"
+  OZONE-SITE.XML_hdds.scm.safemode.healthy.pipeline.pct: "0"
+  OZONE-SITE.XML_ozone.metadata.dirs: /data/metadata
+  OZONE-SITE.XML_ozone.om.address: om
+  OZONE-SITE.XML_ozone.om.http-address: om:9874
+  OZONE-SITE.XML_ozone.recon.address: recon:9891
+  OZONE-SITE.XML_ozone.recon.db.dir: /data/metadata/recon
+  OZONE-SITE.XML_ozone.replication: "1"
+  OZONE-SITE.XML_ozone.replication.type: RATIS
+  OZONE-SITE.XML_ozone.scm.block.client.address: scm
+  OZONE-SITE.XML_ozone.scm.client.address: scm
+  OZONE-SITE.XML_ozone.scm.datanode.id.dir: /data/metadata
+  OZONE-SITE.XML_ozone.scm.names: scm
+  no_proxy: om,recon,scm,s3g,spark,localhost,127.0.0.1
+
+x-logging: &default-logging
+  options:
+    max-size: 20m
+    max-file: "3"
+
+services:
+  scm:
+    <<: *ozone-image
+    hostname: scm
+    command: ["ozone", "scm"]
+    environment:
+      <<: *ozone-config
+      ENSURE_SCM_INITIALIZED: /data/metadata/scm/current/VERSION
+    ports:
+      - "127.0.0.1:${OZONE_SCM_UI_PORT:-9876}:9876"
+    volumes:
+      - ozone-scm:/data
+    restart: unless-stopped
+    logging: *default-logging
+
+  om:
+    <<: *ozone-image
+    hostname: om
+    command: ["ozone", "om"]
+    environment:
+      <<: *ozone-config
+      CORE-SITE.XML_hadoop.proxyuser.hadoop.hosts: "*"
+      CORE-SITE.XML_hadoop.proxyuser.hadoop.groups: "*"
+      ENSURE_OM_INITIALIZED: /data/metadata/om/current/VERSION
+      WAITFOR: scm:9876
+    depends_on:
+      - scm
+    ports:
+      - "127.0.0.1:${OZONE_OM_UI_PORT:-9874}:9874"
+    volumes:
+      - ozone-om:/data
+    restart: unless-stopped
+    logging: *default-logging
+
+  datanode:
+    <<: *ozone-image
+    hostname: datanode
+    command: ["ozone", "datanode"]
+    environment:
+      <<: *ozone-config
+      WAITFOR: scm:9876
+    depends_on:
+      - scm
+    volumes:
+      - ozone-datanode:/data
+    restart: unless-stopped
+    logging: *default-logging
+
+  recon:
+    <<: *ozone-image
+    hostname: recon
+    command: ["ozone", "recon"]
+    environment:
+      <<: *ozone-config
+      WAITFOR: om:9874
+    depends_on:
+      - scm
+      - om
+    ports:
+      - "127.0.0.1:${OZONE_RECON_UI_PORT:-9888}:9888"
+    volumes:
+      - ozone-recon:/data
+    restart: unless-stopped
+    logging: *default-logging
+
+  s3g:
+    <<: *ozone-image
+    hostname: s3g
+    command: ["ozone", "s3g"]
+    environment:
+      <<: *ozone-config
+      WAITFOR: om:9874
+    depends_on:
+      - om
+    ports:
+      - "127.0.0.1:${OZONE_S3_PORT:-9878}:9878"
+    restart: unless-stopped
+    logging: *default-logging
+
+  ozone-init:
+    <<: *ozone-image
+    command: ["bash", "/opt/lab/bin/init-ozone.sh"]
+    environment:
+      <<: *ozone-config
+      WAITFOR: om:9874
+    depends_on:
+      - om
+      - datanode
+    volumes:
+      - ./scripts/init-ozone.sh:/opt/lab/bin/init-ozone.sh:ro
+    restart: "no"
+    logging: *default-logging
+
+  spark:
+    <<: *spark-image
+    hostname: spark
+    environment:
+      SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-2g}
+    depends_on:
+      ozone-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${HIVE_JDBC_PORT:-10000}:10000"
+      - "127.0.0.1:${SPARK_UI_PORT:-4040}:4040"
+    volumes:
+      - spark-local-metastore:/data/spark
+    healthcheck:
+      test: ["CMD", "/opt/lab/bin/healthcheck.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    stop_grace_period: 60s
+    restart: unless-stopped
+    logging: *default-logging
+
+  ozone-ui:
+    <<: *spark-image
+    hostname: ozone-ui
+    command:
+      - /opt/spark/bin/spark-submit
+      - --master
+      - local[2]
+      - --driver-memory
+      - ${OZONE_UI_SPARK_MEMORY:-1g}
+      - --conf
+      - spark.ui.enabled=false
+      - /opt/lab/ui/server.py
+    environment:
+      OZONE_OM_ADDRESS: om:9862
+      OZONE_UI_PORT: "8090"
+      SPARK_LOG_LEVEL: WARN
+    depends_on:
+      ozone-init:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${OZONE_EXPLORER_PORT:-8090}:8090"
+    healthcheck:
+      test: ["CMD", "/opt/lab/bin/healthcheck-ui.sh"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 90s
+    stop_grace_period: 45s
+    restart: unless-stopped
+    logging: *default-logging
+
+volumes:
+  ozone-scm:
+  ozone-om:
+  ozone-datanode:
+  ozone-recon:
+  spark-local-metastore:

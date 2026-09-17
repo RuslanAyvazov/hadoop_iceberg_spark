@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="configuration.xsl"?>
+<configuration>
+  <property>
+    <name>fs.ofs.impl</name>
+    <value>org.apache.hadoop.fs.ozone.RootedOzoneFileSystem</value>
+  </property>
+  <property>
+    <name>ozone.om.address</name>
+    <value>om:9862</value>
+  </property>
+  <property>
+    <name>ozone.replication</name>
+    <value>1</value>
+  </property>
+  <property>
+    <name>ozone.replication.type</name>
+    <value>RATIS</value>
+  </property>
+</configuration>

@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-17T19:05:00Z",
+  "title": "Design System: Ozone Explorer",
+  "extensions": {
+    "colorMeta": {
+      "operations-cobalt": {
+        "role": "primary",
+        "displayName": "Operations Cobalt",
+        "canonical": "#124ec2",
+        "tonalRamp": ["#071329", "#0a2452", "#0d367f", "#124ec2", "#4c78d3", "#86a4e3", "#bfd0f2", "#eef3ff"]
+      },
+      "cool-paper": {
+        "role": "neutral",
+        "displayName": "Cool Paper",
+        "canonical": "#f3f5f6",
+        "tonalRamp": ["#1c2023", "#3b4145", "#5b6368", "#7d868c", "#a0a8ad", "#c4cacf", "#e1e5e8", "#f7f9fa"]
+      },
+      "graphite": {
+        "role": "neutral",
+        "displayName": "Graphite",
+        "canonical": "#17202a",
+        "tonalRamp": ["#0b1015", "#17202a", "#303b46", "#4d5964", "#6e7983", "#949da5", "#c0c6cb", "#edf0f2"]
+      },
+      "working-amber": {
+        "role": "secondary",
+        "displayName": "Working Amber",
+        "canonical": "#d88d00",
+        "tonalRamp": ["#2c1c00", "#593a00", "#865800", "#b77700", "#d88d00", "#eeb849", "#f8d78d", "#fff4d7"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Product Display", "purpose": "Product identity only." },
+      "body": { "displayName": "Interface Body", "purpose": "Instructions and ordinary interface copy." },
+      "label": { "displayName": "Operational Label", "purpose": "Paths, types, commands, counts, and state." }
+    },
+    "shadows": [
+      { "name": "transient-message", "value": "0 10px 30px rgba(23,32,42,.14)", "purpose": "Toasts only." }
+    ],
+    "motion": [
+      { "name": "working-pulse", "value": "opacity .25 to 1 over 1.1s", "purpose": "Reduced-attention Spark loading feedback; disabled when reduced motion is requested." }
+    ],
+    "breakpoints": [
+      { "name": "workspace-stack", "value": "1180px" },
+      { "name": "mobile-stack", "value": "720px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one strong action on a command surface.",
+      "html": "<button class=\"ds-button-primary\">Открыть как DataFrame</button>",
+      "css": ".ds-button-primary{min-height:40px;padding:0 16px;border:0;border-radius:0;background:#124ec2;color:#fff;font:700 14px 'Segoe UI',sans-serif}.ds-button-primary:hover{background:#0a347f}.ds-button-primary:focus-visible{outline:3px solid rgba(18,78,194,.3);outline-offset:2px}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "A secondary action inside an already bounded command strip.",
+      "html": "<button class=\"ds-button-quiet\">Обновить</button>",
+      "css": ".ds-button-quiet{min-height:40px;padding:0 16px;border:0;border-radius:0;background:transparent;color:#17202a;font:700 14px 'Segoe UI',sans-serif}.ds-button-quiet:hover{background:#e6eaed}.ds-button-quiet:focus-visible{outline:3px solid rgba(18,78,194,.3);outline-offset:2px}"
+    },
+    {
+      "name": "Namespace Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Compact square field for Ozone names.",
+      "html": "<input class=\"ds-input\" value=\"analytics\" aria-label=\"Новый volume\">",
+      "css": ".ds-input{height:36px;padding:0 10px;border:1px solid #7b8790;border-radius:0;background:#fff;color:#17202a;font:14px 'Segoe UI',sans-serif}.ds-input:focus-visible{outline:3px solid rgba(18,78,194,.3);outline-offset:2px}"
+    },
+    {
+      "name": "Selected Path Row",
+      "kind": "nav",
+      "refersTo": "panel",
+      "description": "Cobalt-tinted row connecting namespace selection to the current path.",
+      "html": "<button class=\"ds-path-row\"><span>data</span><small>FSO</small></button>",
+      "css": ".ds-path-row{width:240px;min-height:36px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border:0;border-radius:0;background:#e2eaff;color:#0a347f;font:600 12px 'Cascadia Mono',monospace}.ds-path-row:hover{background:#d6e1ff}.ds-path-row:focus-visible{outline:3px solid rgba(18,78,194,.3);outline-offset:2px}.ds-path-row small{font-size:11px}"
+    },
+    {
+      "name": "Schema Field",
+      "kind": "custom",
+      "refersTo": "panel",
+      "description": "Ruled schema cell showing field name, Spark type, and nullable state.",
+      "html": "<div class=\"ds-schema-field\"><strong>customer_id</strong><span>long</span><small>NULL</small></div>",
+      "css": ".ds-schema-field{min-width:150px;padding:8px 11px;border:1px solid #c5cdd3;border-radius:0;background:#e6eaed;color:#17202a;font-family:'Cascadia Mono',monospace}.ds-schema-field strong,.ds-schema-field span{display:block}.ds-schema-field strong{font-size:12px}.ds-schema-field span{margin-top:3px;color:#0a347f;font-size:11px}.ds-schema-field small{color:#65717c;font-size:11px}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Operations Flight Strip",
+    "overview": "Ozone Explorer looks like an instrument used to follow data through a system. Cool paper, precise graphite rules, compact labels, and tabular values make hierarchy and state visible without turning the product into a generic dashboard. Cobalt is reserved for the active path and actions; amber appears only while work is running. The interface stays dense enough for file and schema inspection but keeps a clear left-to-right reading order. Namespace, stored path, and DataFrame are parts of one journey, not detached cards.",
+    "keyCharacteristics": [
+      "Squared, ruled work surfaces with no decorative container rounding.",
+      "Cobalt selections and action controls against cool neutral paper.",
+      "Monospaced operational metadata paired with a compact humanist interface face.",
+      "Literal loading, ready, error, and selection states."
+    ],
+    "rules": [
+      { "name": "The One Operational Accent Rule", "body": "Cobalt marks selection or action; it is never added merely to make a region more colorful.", "section": "colors" },
+      { "name": "The State Is Literal Rule", "body": "Amber means running, green means ready, and red means failure. These colors do not decorate neutral content.", "section": "colors" },
+      { "name": "The Metadata Has a Voice Rule", "body": "Paths, types, sizes, counts, timestamps, and commands use the monospaced layer; explanatory prose does not.", "section": "typography" },
+      { "name": "The Ruled Surface Rule", "body": "Permanent hierarchy is expressed with background tone and borders; shadows do not separate ordinary panels.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep storage path, schema, and rows visibly connected.",
+      "Do use cobalt only for an action or selected state.",
+      "Do preserve keyboard focus and reduced-motion behavior.",
+      "Do keep operational text at 11px or larger."
+    ],
+    "donts": [
+      "Don't turn zones into rounded, floating dashboard cards.",
+      "Don't use state colors as generic decoration.",
+      "Don't hide the equivalent Spark command after a successful preview.",
+      "Don't add decorative grids, chapter numbers, or continuously moving marquees."
+    ]
+  }
+}

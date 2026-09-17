@@ -3,8 +3,8 @@
 [![Проверка конфигураций](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/validate.yml)
 [![Сборка Docker-образов](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml)
 
-Две готовые сборки для локальной работы с Hadoop HDFS, Spark SQL, Apache
-Iceberg, Parquet и Hive Metastore. Обе запускаются через Docker Compose и
+Три готовые сборки для локальной работы с Hadoop HDFS или Apache Ozone,
+Spark SQL, Apache Iceberg и Parquet. Все запускаются через Docker Compose и
 принимают SQL-запросы из DBeaver на Windows.
 
 ## Быстрый запуск
@@ -32,7 +32,19 @@ docker compose up -d
 docker compose ps
 ```
 
-Не запускайте обе сборки одновременно с настройками по умолчанию: они
+Для знакомства с Apache Ozone и его связкой со Spark:
+
+```bash
+cd ../hadoop_iceberg_spark_ozone
+docker compose up -d
+docker compose ps
+```
+
+После запуска откройте <http://localhost:8090>. Встроенный Ozone Explorer
+позволяет создать volume и bucket, выбрать файл или каталог и увидеть схему и
+строки, прочитанные через настоящий Spark DataFrame.
+
+Не запускайте сборки одновременно с настройками по умолчанию: они
 используют одинаковые порты на компьютере.
 
 ## Готовые образы и локальная сборка
@@ -57,12 +69,17 @@ docker compose up -d --no-build
 docker compose up -d --build
 ```
 
-Опубликованы два образа для `linux/amd64`:
+Для HDFS опубликованы два образа для `linux/amd64`:
 
 ```text
 ghcr.io/ruslanayvazov/hadoop-iceberg-spark-single-node:3.3.6-3.5.4
 ghcr.io/ruslanayvazov/hadoop-iceberg-spark-cluster:3.3.6-3.5.4
 ```
+
+Ozone-вариант использует официальный образ `apache/ozone:2.2.1-slim`, а образ
+Spark при первом запуске собирается локально. Workflow публикации также
+подготовлен для образа
+`ghcr.io/ruslanayvazov/hadoop-iceberg-spark-ozone:2.2.1-3.5.4`.
 
 ## Подключение DBeaver
 
@@ -106,6 +123,7 @@ SELECT * FROM spark_catalog.demo.events;
 |---|---|---:|
 | [Одноузловой](hadoop_iceberg_spark_single_node/) | SQL, Iceberg, Parquet, знакомство с HDFS | от 6 ГБ |
 | [Кластерный](hadoop_iceberg_spark_cluster/) | Три HDFS-узла, YARN, репликация и эксперименты с отказами | от 12 ГБ, желательно 16 ГБ |
+| [Ozone](hadoop_iceberg_spark_ozone/) | Ozone Explorer, volumes/buckets/keys, Spark DataFrame через `ofs://`, S3 Gateway и Recon | от 7–8 ГБ |
 
 Подробные инструкции по запуску, проверке, настройке Spark, хранению данных и
 диагностике находятся в `README` соответствующей сборки.
@@ -118,12 +136,12 @@ SELECT * FROM spark_catalog.demo.events;
 docker compose down
 ```
 
-Данные HDFS и Hive Metastore сохранятся в именованных томах Docker. Команда
+Данные хранилища и служебных каталогов сохранятся в именованных томах Docker. Команда
 ниже удалит контейнеры вместе со всеми данными выбранной сборки:
 
 ```bash
 docker compose down -v
 ```
 
-Обе конфигурации предназначены для обучения и локальной разработки. Они не
+Все конфигурации предназначены для обучения и локальной разработки. Они не
 включают защиту и отказоустойчивость, необходимые для промышленной среды.
