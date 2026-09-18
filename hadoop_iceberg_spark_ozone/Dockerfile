@@ -10,12 +10,11 @@ ARG HADOOP_COMPAT_VERSION=3.4.2
 ENV JAVA_HOME=/opt/java/openjdk \
     SPARK_HOME=/opt/spark \
     SPARK_CONF_DIR=/opt/spark/conf \
-    JUPYTER_HOME=/opt/jupyter \
-    PATH=/opt/jupyter/bin:/opt/java/openjdk/bin:/opt/spark/bin:/opt/spark/sbin:$PATH
+    PATH=/opt/java/openjdk/bin:/opt/spark/bin:/opt/spark/sbin:$PATH
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-       ca-certificates curl netcat-openbsd procps python3 python3-pip python3-venv tini \
+       ca-certificates curl netcat-openbsd procps python3 tini \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --gid 10001 bigdata \
@@ -50,6 +49,14 @@ RUN set -eux; \
     download_jar org/apache/iceberg iceberg-spark-runtime-3.5_2.12 "${ICEBERG_VERSION}"; \
     download_jar org/apache/ozone ozone-filesystem-hadoop3 "${OZONE_VERSION}"; \
     download_jar org/apache/hadoop hadoop-common "${HADOOP_COMPAT_VERSION}"
+
+ENV JUPYTER_HOME=/opt/jupyter \
+    PATH=/opt/jupyter/bin:/opt/java/openjdk/bin:/opt/spark/bin:/opt/spark/sbin:$PATH
+
+RUN apt-get update \
+    && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+       python3-pip python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN python3 -m venv "${JUPYTER_HOME}" \
     && "${JUPYTER_HOME}/bin/pip" install --no-cache-dir \
