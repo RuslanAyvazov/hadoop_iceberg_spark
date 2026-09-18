@@ -1,29 +1,28 @@
-# Spark, Iceberg и Apache Ozone: учебный стенд
+# Spark, Scala, JupyterLab и Apache Ozone
 
-Этот вариант показывает Apache Ozone как хранилище для Spark. При запуске
-создаются Ozone volume `/spark`, два FSO-bucket `/spark/warehouse` и
-`/spark/data`, а также S3-bucket `/s3v/s3-demo`.
+Учебный стенд показывает Apache Ozone как хранилище для Spark. JupyterLab
+запускает Scala-код через ядро Apache Toree, а Spark читает и пишет данные
+непосредственно по адресам `ofs://`.
 
-FSO (`FILE_SYSTEM_OPTIMIZED`) — тип bucket, оптимизированный для каталогов,
-переименований и других привычных файловых операций. Именно его удобно
-использовать со Spark через адреса `ofs://`.
+При первом запуске автоматически создаются volume `/spark`, FSO-bucket
+`/spark/warehouse` и `/spark/data`, а также S3-bucket `/s3v/s3-demo`.
+FSO (`FILE_SYSTEM_OPTIMIZED`) — тип bucket, приспособленный к каталогам,
+переименованиям и другим файловым операциям Spark.
 
 ## Что запускается
 
 | Сервис | Назначение | Адрес с компьютера |
 |---|---|---|
-| Ozone Manager (OM) | volumes, buckets, keys и права | http://localhost:9874 |
-| Storage Container Manager (SCM) | datanodes, контейнеры и репликация | http://localhost:9876 |
-| Recon | сводный интерфейс наблюдения, только чтение | http://localhost:9888 |
-| S3 Gateway | S3-совместимый доступ к Ozone | http://localhost:9878 |
-| Ozone Explorer | Создание volume/bucket и просмотр файлов через Spark DataFrame | http://localhost:8090 |
-| Spark Thrift Server | SQL из DBeaver/Beeline | `localhost:10000` |
-| Spark UI | текущие задания Spark | http://localhost:4040 |
+| JupyterLab + Apache Toree | Блокноты Scala и Spark DataFrame | http://localhost:8888 |
+| Ozone Recon | Состояние Ozone, volumes, buckets и keys | http://localhost:9888 |
+| Ozone Manager | Метаданные Ozone | http://localhost:9874 |
+| Storage Container Manager | Узлы, контейнеры и репликация | http://localhost:9876 |
+| S3 Gateway | S3-совместимый доступ | http://localhost:9878 |
+| Spark Thrift Server | Spark SQL из DBeaver или Beeline | `localhost:10000` |
+| Spark UI | Текущие задания Thrift Server | http://localhost:4040 |
 
-Стенд использует официальный образ Apache Ozone `2.2.1-slim`, Spark `3.5.4`
-и Iceberg `1.6.1`.
-Данные Ozone и локальный служебный каталог Spark сохраняются в именованных
-томах Docker.
+Стенд использует Apache Ozone `2.2.1`, Spark `3.5.4`, Scala `2.12`,
+Iceberg `1.6.1`, JupyterLab `4.6.3` и Apache Toree `0.5.0`.
 
 ## 1. Запуск
 
@@ -35,57 +34,75 @@ docker compose up -d
 docker compose ps
 ```
 
-Первый запуск дольше последующих: Docker скачивает официальный образ Ozone и
-образ Spark либо собирает его локально. Стенд готов, когда `ozone-init`
-завершился с кодом `0`, а `spark` и `ozone-ui` имеют состояние `healthy`.
+Стенд готов, когда `ozone-init` завершился с кодом `0`, а `spark` и `jupyter`
+имеют состояние `healthy`. Откройте <http://localhost:8888>.
 
-Флаг `--build` для обычного запуска не нужен. Используйте его только после
-изменения `Dockerfile` или файлов конфигурации Spark.
+Jupyter доступен только с текущего компьютера через `127.0.0.1`. В учебном
+стенде пароль и токен отключены. При необходимости задайте токен перед запуском:
 
 ```bash
-docker compose logs ozone-init
-docker compose logs -f spark
+export JUPYTER_TOKEN='my-secret-token'
+docker compose up -d
 ```
 
-## 2. Ozone Explorer: volume, bucket и Spark DataFrame в браузере
+Рабочие блокноты сохраняются в именованном томе `jupyter-work`. Поэтому правки
+не исчезают после `docker compose down` или обновления образа.
 
-Откройте <http://localhost:8090>. Это учебный интерфейс из того же Docker-образа,
-что и Spark. Он обращается к Ozone через Java-клиент, а выбранные данные читает
-настоящим `spark.read` — строки и схема не имитируются в браузере.
+## 2. Первый блокнот Scala
 
-Работа строится слева направо:
+Откройте файл `01_spark_scala_ozone.ipynb` и выполняйте ячейки сверху вниз.
+Он использует ядро **Apache Toree - Scala** и показывает полный путь данных:
 
-1. Создайте volume или нажмите `+ bucket` у существующего volume.
-2. Выберите bucket и перейдите по каталогам в средней колонке.
-3. Выберите файл либо каталог Parquet, CSV или JSON.
-4. Нажмите **Открыть как DataFrame**. Справа появятся схема, строки и команда
-   PySpark, которой были прочитаны данные.
+```text
+Scala Seq -> Spark DataFrame -> Parquet в Ozone -> Spark DataFrame
+```
 
-Для каталогов с файлами Parquet обычно оставляйте формат `Авто`. Для CSV
-интерфейс включает заголовок и определение типов по данным. Предпросмотр
-ограничен 200 строками и предназначен для изучения, а не для выгрузки больших
-наборов данных.
+Основной адрес файловой системы:
 
-## 3. Первая проверка Ozone
+```text
+ofs://om/<volume>/<bucket>/<path>
+```
 
-Ozone хранит данные в иерархии: volume (том, верхняя область проекта), bucket
-(бакет, контейнер данных) и key (ключ, отдельный файл или объект).
+Минимальный пример Scala из блокнота:
+
+```scala
+import org.apache.spark.sql.SparkSession
+
+val ozoneSpark = SparkSession.builder()
+  .appName("Jupyter Scala with Apache Ozone")
+  .getOrCreate()
+
+import ozoneSpark.implicits._
+
+val path = "ofs://om/spark/data/my-scala-data"
+val df = Seq((1L, "Анна"), (2L, "Борис")).toDF("id", "name")
+
+df.write.mode("overwrite").parquet(path)
+ozoneSpark.read.parquet(path).show(false)
+```
+
+JupyterLab — оболочка для файлов и блокнотов. Apache Toree — ядро, которое
+принимает Scala-код из ячейки и выполняет его внутри Spark. Поэтому результат
+является настоящим Spark DataFrame, а не таблицей, нарисованной интерфейсом.
+
+## 3. Как устроены данные Ozone
+
+Ozone хранит данные в иерархии:
 
 ```text
 volume -> bucket -> key
 проект -> хранилище -> файл или объект
 ```
 
-Посмотрите автоматически созданные объекты:
+Посмотреть автоматически созданные объекты:
 
 ```bash
 docker compose exec om ozone sh volume list /
 docker compose exec om ozone sh bucket list /spark
-docker compose exec om ozone sh bucket info /spark/data
 docker compose exec om ozone sh key list /spark/data
 ```
 
-Создайте собственные volume и bucket:
+Создать собственные volume и bucket:
 
 ```bash
 docker compose exec om ozone sh volume create /training
@@ -93,103 +110,41 @@ docker compose exec om ozone sh bucket create /training/raw --layout fso
 docker compose exec om ozone sh bucket list /training
 ```
 
-Запишите обычный файл и прочитайте его:
-
-```bash
-docker compose exec om bash -lc 'printf "hello ozone\n" >/tmp/hello.txt'
-docker compose exec om ozone sh key put /training/raw/hello.txt /tmp/hello.txt
-docker compose exec om ozone sh key list /training/raw
-docker compose exec om ozone sh key get /training/raw/hello.txt /tmp/from-ozone.txt
-docker compose exec om cat /tmp/from-ozone.txt
-```
-
-Полную справку можно получить без выхода из стенда:
-
-```bash
-docker compose exec om ozone sh volume --help
-docker compose exec om ozone sh bucket --help
-docker compose exec om ozone sh key --help
-```
-
-## 4. Spark читает и пишет Ozone
-
-Основной адрес файловой системы в этом стенде:
-
-```text
-ofs://om/<volume>/<bucket>/<path>
-```
-
-Запустите готовый пример DataFrame:
-
-```bash
-docker compose exec spark \
-  /opt/spark/bin/spark-submit /opt/lab/examples/ozone_dataframe.py
-```
-
-Он записывает Parquet в `ofs://om/spark/data/users-parquet`, читает его обратно
-и печатает три строки. После этого файлы видны через Ozone Shell:
+После записи из блокнота физические файлы можно увидеть так:
 
 ```bash
 docker compose exec om ozone sh key list /spark/data
 ```
 
-Для экспериментов в интерактивной консоли Spark:
+## 4. Iceberg в Ozone
 
-```bash
-docker compose exec spark /opt/spark/bin/pyspark
+Spark-каталог `ozone` уже настроен. Его хранилище находится в
+`ofs://om/spark/warehouse`. В готовом блокноте есть Scala-ячейка:
+
+```scala
+ozoneSpark.sql("CREATE NAMESPACE IF NOT EXISTS ozone.notebook")
+ozoneSpark.sql("""
+  CREATE TABLE IF NOT EXISTS ozone.notebook.events (
+    id BIGINT,
+    message STRING
+  ) USING iceberg
+""")
+ozoneSpark.sql("INSERT INTO ozone.notebook.events VALUES (1, 'Scala works')")
+ozoneSpark.sql("SELECT * FROM ozone.notebook.events").show(false)
 ```
 
-Пример внутри PySpark:
+## 5. DBeaver остаётся доступен
 
-```python
-path = "ofs://om/spark/data/my-numbers"
-spark.range(1, 6).write.mode("overwrite").parquet(path)
-spark.read.parquet(path).show()
-```
-
-## 5. Iceberg-таблица в Ozone через DBeaver
-
-DBeaver остаётся удобным интерфейсом для Spark SQL. Он не управляет кластером
-Ozone напрямую: SQL выполняет Spark, а Spark записывает файлы и метаданные в
-Ozone.
-
-Создайте подключение Apache Hive:
-
-| Параметр | Значение |
-|---|---|
-| Сервер | `localhost` |
-| Порт | `10000` |
-| База | `default` |
-| Пользователь | `hive` |
-| Пароль | пустой |
+JupyterLab нужен для Scala, Spark DataFrame и пошаговых экспериментов. DBeaver
+можно использовать параллельно для SQL по адресу:
 
 ```text
 jdbc:hive2://localhost:10000/default;auth=noSasl
 ```
 
-Проверочный SQL:
+Пользователь: `hive`. Пароль пустой.
 
-```sql
-CREATE NAMESPACE IF NOT EXISTS ozone.demo;
-
-CREATE TABLE IF NOT EXISTS ozone.demo.events (
-    id BIGINT,
-    message STRING,
-    created_at TIMESTAMP
-)
-USING iceberg;
-
-INSERT INTO ozone.demo.events
-VALUES (1, 'Iceberg table in Ozone', current_timestamp());
-
-SELECT * FROM ozone.demo.events;
-SELECT * FROM ozone.demo.events.snapshots;
-```
-
-Каталог Iceberg имеет имя `ozone`, а его warehouse находится в
-`ofs://om/spark/warehouse`.
-
-## 6. Автоматическая сквозная проверка
+## 6. Автоматическая проверка
 
 Linux или WSL:
 
@@ -197,57 +152,29 @@ Linux или WSL:
 bash scripts/smoke-test.sh
 ```
 
-Windows PowerShell, если команда `docker` доступна в Windows:
+Проверка выполняет SQL через Spark Thrift Server, записывает Parquet в Ozone,
+затем исполняет готовый Scala-блокнот через ядро Toree. Успешный итог:
 
-```powershell
-.\scripts\smoke-test.ps1
+```text
+JUPYTER_SCALA_OZONE_OK
 ```
 
-Проверка создаёт Iceberg-таблицу через JDBC, записывает Parquet через PySpark,
-читает данные обратно, показывает ключи в Ozone и вызывает предпросмотр через
-API Ozone Explorer.
+## 7. Штатные интерфейсы Ozone
 
-## 7. S3-совместимый доступ
-
-Ozone имеет S3 Gateway. В учебном стенде создан bucket `s3-demo` в специальном
-volume `/s3v`. При установленном AWS CLI можно выполнить:
-
-```bash
-export AWS_ACCESS_KEY_ID=test
-export AWS_SECRET_ACCESS_KEY=test
-aws --endpoint-url http://localhost:9878 s3api list-buckets
-aws --endpoint-url http://localhost:9878 s3 cp ./README.md s3://s3-demo/readme.md
-aws --endpoint-url http://localhost:9878 s3 ls s3://s3-demo/
-```
-
-Защита в учебном стенде выключена, поэтому подходят любые непустые ключи.
-В защищённом кластере секрет выдаётся командой `ozone s3 getsecret`.
-
-## Какой интерфейс для чего использовать
-
-| Задача | Удобный интерфейс |
-|---|---|
-| Создать volume/bucket и просмотреть данные как DataFrame | Ozone Explorer |
-| Настроить квоту, права и расширенные параметры | `ozone sh` |
-| Посмотреть здоровье, объёмы, buckets и keys | Recon, только чтение |
-| Выполнять SQL по таблицам | DBeaver или Beeline |
-| Учиться DataFrame и файловым операциям Spark | PySpark / `spark-submit` |
-| Работать как с S3-хранилищем | AWS CLI или другой S3-совместимый клиент |
-
-Штатные интерфейсы OM, SCM и Recon прежде всего показывают состояние и
-метаданные и не заменяют `ozone sh` для всех операций. Добавленный Ozone
-Explorer закрывает учебный сценарий создания хранилищ и чтения данных через
-Spark; расширенное администрирование остаётся в командной строке.
+Recon по адресу <http://localhost:9888> показывает состояние кластера и
+метаданные. Создание и точная настройка volume/bucket выполняются через
+`ozone sh`. JupyterLab отвечает за работу с данными через Spark, а не за
+администрирование Ozone.
 
 ## Остановка и очистка
 
-Обычная остановка сохраняет данные:
+Обычная остановка сохраняет данные и блокноты:
 
 ```bash
 docker compose down
 ```
 
-Полная очистка удаляет все данные этого стенда:
+Полная очистка удаляет все данные стенда и рабочие блокноты:
 
 ```bash
 docker compose down -v

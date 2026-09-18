@@ -29,6 +29,6 @@ jobs:
       - name: Validate shell scripts
         run: bash -n scripts/*.sh
 
-      - name: Test Ozone Explorer server helpers
+      - name: Validate Scala notebook
         if: matrix.directory == 'hadoop_iceberg_spark_ozone'
         run: python3 -m unittest discover -s tests -p 'test_*.py'

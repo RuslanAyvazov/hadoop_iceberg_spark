@@ -40,9 +40,9 @@ docker compose up -d
 docker compose ps
 ```
 
-После запуска откройте <http://localhost:8090>. Встроенный Ozone Explorer
-позволяет создать volume и bucket, выбрать файл или каталог и увидеть схему и
-строки, прочитанные через настоящий Spark DataFrame.
+После запуска откройте JupyterLab по адресу <http://localhost:8888> и выберите
+готовый блокнот `01_spark_scala_ozone.ipynb`. Scala-код выполняется ядром
+Apache Toree внутри Spark и читает Ozone как Spark DataFrame через `ofs://`.
 
 Не запускайте сборки одновременно с настройками по умолчанию: они
 используют одинаковые порты на компьютере.
@@ -76,9 +76,8 @@ ghcr.io/ruslanayvazov/hadoop-iceberg-spark-single-node:3.3.6-3.5.4
 ghcr.io/ruslanayvazov/hadoop-iceberg-spark-cluster:3.3.6-3.5.4
 ```
 
-Ozone-вариант использует официальный образ `apache/ozone:2.2.1-slim`, а образ
-Spark при первом запуске собирается локально. Workflow публикации также
-подготовлен для образа
+Ozone-вариант использует официальный образ `apache/ozone:2.2.1-slim` и готовый
+образ Spark с JupyterLab и Scala-ядром Apache Toree:
 `ghcr.io/ruslanayvazov/hadoop-iceberg-spark-ozone:2.2.1-3.5.4`.
 
 ## Подключение DBeaver
@@ -123,7 +122,7 @@ SELECT * FROM spark_catalog.demo.events;
 |---|---|---:|
 | [Одноузловой](hadoop_iceberg_spark_single_node/) | SQL, Iceberg, Parquet, знакомство с HDFS | от 6 ГБ |
 | [Кластерный](hadoop_iceberg_spark_cluster/) | Три HDFS-узла, YARN, репликация и эксперименты с отказами | от 12 ГБ, желательно 16 ГБ |
-| [Ozone](hadoop_iceberg_spark_ozone/) | Ozone Explorer, volumes/buckets/keys, Spark DataFrame через `ofs://`, S3 Gateway и Recon | от 7–8 ГБ |
+| [Ozone](hadoop_iceberg_spark_ozone/) | JupyterLab, Scala, Spark DataFrame через `ofs://`, volumes/buckets/keys, S3 Gateway и Recon | от 7–8 ГБ |
 
 Подробные инструкции по запуску, проверке, настройке Spark, хранению данных и
 диагностике находятся в `README` соответствующей сборки.

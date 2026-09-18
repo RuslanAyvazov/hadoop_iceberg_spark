@@ -151,34 +151,27 @@ services:
     restart: unless-stopped
     logging: *default-logging
 
-  ozone-ui:
+  jupyter:
     <<: *spark-image
-    hostname: ozone-ui
-    command:
-      - /opt/spark/bin/spark-submit
-      - --master
-      - local[2]
-      - --driver-memory
-      - ${OZONE_UI_SPARK_MEMORY:-1g}
-      - --conf
-      - spark.ui.enabled=false
-      - /opt/lab/ui/server.py
+    hostname: jupyter
+    command: ["/opt/lab/bin/start-jupyter.sh"]
     environment:
-      OZONE_OM_ADDRESS: om:9862
-      OZONE_UI_PORT: "8090"
-      SPARK_LOG_LEVEL: WARN
+      JUPYTER_TOKEN: ${JUPYTER_TOKEN:-}
+      SPARK_OPTS: "--master=local[2] --driver-memory=${JUPYTER_SPARK_MEMORY:-1g}"
     depends_on:
       ozone-init:
         condition: service_completed_successfully
     ports:
-      - "127.0.0.1:${OZONE_EXPLORER_PORT:-8090}:8090"
+      - "127.0.0.1:${JUPYTER_PORT:-8888}:8888"
+    volumes:
+      - jupyter-work:/home/bigdata/work
     healthcheck:
-      test: ["CMD", "/opt/lab/bin/healthcheck-ui.sh"]
+      test: ["CMD", "/opt/lab/bin/healthcheck-jupyter.sh"]
       interval: 10s
       timeout: 5s
       retries: 30
-      start_period: 90s
-    stop_grace_period: 45s
+      start_period: 30s
+    stop_grace_period: 30s
     restart: unless-stopped
     logging: *default-logging
 
@@ -188,3 +181,4 @@ volumes:
   ozone-datanode:
   ozone-recon:
   spark-local-metastore:
+  jupyter-work:

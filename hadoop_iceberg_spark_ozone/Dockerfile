@@ -10,11 +10,12 @@ ARG HADOOP_COMPAT_VERSION=3.4.2
 ENV JAVA_HOME=/opt/java/openjdk \
     SPARK_HOME=/opt/spark \
     SPARK_CONF_DIR=/opt/spark/conf \
-    PATH=/opt/java/openjdk/bin:/opt/spark/bin:/opt/spark/sbin:$PATH
+    JUPYTER_HOME=/opt/jupyter \
+    PATH=/opt/jupyter/bin:/opt/java/openjdk/bin:/opt/spark/bin:/opt/spark/sbin:$PATH
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-       ca-certificates curl netcat-openbsd procps python3 tini \
+       ca-certificates curl netcat-openbsd procps python3 python3-pip python3-venv tini \
     && rm -rf /var/lib/apt/lists/*
 
 RUN groupadd --gid 10001 bigdata \
@@ -50,19 +51,30 @@ RUN set -eux; \
     download_jar org/apache/ozone ozone-filesystem-hadoop3 "${OZONE_VERSION}"; \
     download_jar org/apache/hadoop hadoop-common "${HADOOP_COMPAT_VERSION}"
 
-COPY conf/spark/ ${SPARK_HOME}/conf/
-COPY --chown=bigdata:bigdata scripts/entrypoint.sh scripts/healthcheck.sh scripts/healthcheck-ui.sh /opt/lab/bin/
-COPY --chown=bigdata:bigdata examples/ /opt/lab/examples/
-COPY --chown=bigdata:bigdata tests/ /opt/lab/tests/
-COPY --chown=bigdata:bigdata ui/ /opt/lab/ui/
+RUN python3 -m venv "${JUPYTER_HOME}" \
+    && "${JUPYTER_HOME}/bin/pip" install --no-cache-dir \
+       "jupyterlab==4.6.3" \
+       "nbconvert==7.17.1" \
+       "apache-toree==0.5.0" \
+    && "${JUPYTER_HOME}/bin/jupyter" toree install \
+       --sys-prefix \
+       --spark_home="${SPARK_HOME}" \
+       --interpreters=Scala \
+       --spark_opts='--master=local[*]'
 
-RUN mkdir -p /data/spark /opt/lab/bin "${SPARK_HOME}/logs" \
+COPY conf/spark/ ${SPARK_HOME}/conf/
+COPY --chown=bigdata:bigdata scripts/entrypoint.sh scripts/healthcheck.sh scripts/start-jupyter.sh scripts/healthcheck-jupyter.sh /opt/lab/bin/
+COPY --chown=bigdata:bigdata examples/ /opt/lab/examples/
+COPY --chown=bigdata:bigdata notebooks/ /opt/lab/notebooks/
+COPY --chown=bigdata:bigdata tests/ /opt/lab/tests/
+
+RUN mkdir -p /data/spark /opt/lab/bin /home/bigdata/work "${SPARK_HOME}/logs" \
     && chmod +x /opt/lab/bin/*.sh \
-    && chown -R bigdata:bigdata /data/spark /opt/lab "${SPARK_HOME}/logs"
+    && chown -R bigdata:bigdata /data/spark /opt/lab /home/bigdata/work "${SPARK_HOME}/logs"
 
 USER bigdata
 WORKDIR /home/bigdata
 
-EXPOSE 10000 4040 8090
+EXPOSE 10000 4040 8888
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/opt/lab/bin/entrypoint.sh"]
