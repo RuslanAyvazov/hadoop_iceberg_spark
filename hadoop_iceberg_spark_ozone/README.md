@@ -14,12 +14,13 @@ FSO (`FILE_SYSTEM_OPTIMIZED`) — тип bucket, приспособленный 
 | Сервис | Назначение | Адрес с компьютера |
 |---|---|---|
 | JupyterLab + Apache Toree | Блокноты Scala и Spark DataFrame | http://localhost:8888 |
+| Spark UI блокнота | Задания текущего Scala-ядра | http://localhost:4041 |
 | Ozone Recon | Состояние Ozone, volumes, buckets и keys | http://localhost:9888 |
 | Ozone Manager | Метаданные Ozone | http://localhost:9874 |
 | Storage Container Manager | Узлы, контейнеры и репликация | http://localhost:9876 |
 | S3 Gateway | S3-совместимый доступ | http://localhost:9878 |
-| Spark Thrift Server | Spark SQL из DBeaver или Beeline | `localhost:10000` |
-| Spark UI | Текущие задания Thrift Server | http://localhost:4040 |
+| Spark Thrift Server, необязательно | SQL из DBeaver или Beeline | `localhost:10000` |
+| Spark UI Thrift Server, необязательно | Задания SQL-сервера | http://localhost:4040 |
 
 Стенд использует Apache Ozone `2.2.1`, Spark `3.5.4`, Scala `2.12`,
 Iceberg `1.6.1`, JupyterLab `4.6.3` и Apache Toree `0.5.0`.
@@ -34,8 +35,8 @@ docker compose up -d
 docker compose ps
 ```
 
-Стенд готов, когда `ozone-init` завершился с кодом `0`, а `spark` и `jupyter`
-имеют состояние `healthy`. Откройте <http://localhost:8888>.
+Стенд готов, когда `ozone-init` завершился с кодом `0`, а `jupyter` имеет
+состояние `healthy`. Откройте <http://localhost:8888>.
 
 Jupyter доступен только с текущего компьютера через `127.0.0.1`. В учебном
 стенде пароль и токен отключены. При необходимости задайте токен перед запуском:
@@ -133,10 +134,17 @@ ozoneSpark.sql("INSERT INTO ozone.notebook.events VALUES (1, 'Scala works')")
 ozoneSpark.sql("SELECT * FROM ozone.notebook.events").show(false)
 ```
 
-## 5. DBeaver остаётся доступен
+## 5. DBeaver остаётся доступен как необязательный профиль
 
-JupyterLab нужен для Scala, Spark DataFrame и пошаговых экспериментов. DBeaver
-можно использовать параллельно для SQL по адресу:
+По умолчанию отдельный Spark Thrift Server не запускается: Jupyter уже создаёт
+собственный Spark-процесс, а два процесса одновременно требуют заметно больше
+памяти. Если нужен DBeaver, включите профиль `sql`:
+
+```bash
+docker compose --profile sql up -d spark
+```
+
+После этого DBeaver подключается по адресу:
 
 ```text
 jdbc:hive2://localhost:10000/default;auth=noSasl
@@ -152,8 +160,8 @@ Linux или WSL:
 bash scripts/smoke-test.sh
 ```
 
-Проверка выполняет SQL через Spark Thrift Server, записывает Parquet в Ozone,
-затем исполняет готовый Scala-блокнот через ядро Toree. Успешный итог:
+Проверка исполняет готовый Scala-блокнот через ядро Toree, записывает Parquet
+и Iceberg в Ozone и читает DataFrame обратно. Успешный итог:
 
 ```text
 JUPYTER_SCALA_OZONE_OK
@@ -180,5 +188,5 @@ docker compose down
 docker compose down -v
 ```
 
-Не запускайте этот стенд одновременно с HDFS-вариантами репозитория без смены
-портов: по умолчанию они используют `4040` и `10000`.
+Не запускайте SQL-профиль этого стенда одновременно с HDFS-вариантами
+репозитория без смены портов: они используют `4040` и `10000`.

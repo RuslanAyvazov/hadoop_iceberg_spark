@@ -4,8 +4,9 @@
 [![Сборка Docker-образов](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml/badge.svg)](https://github.com/RuslanAyvazov/hadoop_iceberg_spark/actions/workflows/publish-images.yml)
 
 Три готовые сборки для локальной работы с Hadoop HDFS или Apache Ozone,
-Spark SQL, Apache Iceberg и Parquet. Все запускаются через Docker Compose и
-принимают SQL-запросы из DBeaver на Windows.
+Spark SQL, Apache Iceberg и Parquet. Все запускаются через Docker Compose.
+Ozone-вариант по умолчанию открывает JupyterLab со Scala; SQL-сервер для
+DBeaver в нём включается отдельно.
 
 ## Быстрый запуск
 
@@ -82,7 +83,14 @@ Ozone-вариант использует официальный образ `apa
 
 ## Подключение DBeaver
 
-После запуска любой сборки создайте подключение с драйвером Apache Hive:
+В одноузловой и кластерной сборках SQL-сервер запускается сразу. В
+Ozone-сборке сначала включите необязательный профиль:
+
+```bash
+docker compose --profile sql up -d spark
+```
+
+Затем создайте в DBeaver подключение с драйвером Apache Hive:
 
 | Параметр | Значение |
 |---|---|

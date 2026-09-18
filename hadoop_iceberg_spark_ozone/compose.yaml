@@ -131,6 +131,7 @@ services:
   spark:
     <<: *spark-image
     hostname: spark
+    profiles: ["sql"]
     environment:
       SPARK_DRIVER_MEMORY: ${SPARK_DRIVER_MEMORY:-2g}
     depends_on:
@@ -163,6 +164,7 @@ services:
         condition: service_completed_successfully
     ports:
       - "127.0.0.1:${JUPYTER_PORT:-8888}:8888"
+      - "127.0.0.1:${JUPYTER_SPARK_UI_PORT:-4041}:4040"
     volumes:
       - jupyter-work:/home/bigdata/work
     healthcheck:
